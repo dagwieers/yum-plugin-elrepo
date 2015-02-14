@@ -37,6 +37,9 @@ def exclude_hook(conduit):
     elrepo_matches = []
     elrepo_exclude = conduit.confString('main', 'exclude').split()
 
+    elrepo_install = conduit.confBool('main', 'install')
+    elrepo_filter = conduit.confString('main', 'filter').split()
+
     def find_matches(pkg, provides, matchfor=None):
         ### Skip installed packages
         if pkg.repo.id == 'installed': return
@@ -55,12 +58,19 @@ def exclude_hook(conduit):
                 if fnmatch.fnmatch(modalias, filter):
                     elrepo_matches.append(pkg)
 
-                    ### If we get a match for this package, don't bother with other provides
+                    ### If we get a match, skip all other provides from this package
                     return
 
     conduit._base.searchPackageProvides(['modalias(*)', ], callback=find_matches, callback_has_matchfor=True)
 
+    ### Report the matches we find
     if elrepo_matches:
         conduit.info(1, 'ELRepo hardware support detected using:')
         for pkg in elrepo_matches:
             conduit.info(1, ' * %s (%s)' % (pkg.name, pkg.repo.id))
+
+            ### Install packages if requested
+            if elrepo_install:
+                for filter in elrepo_filter:
+                    if fnmatch.fnmatch(pkg.name, filter):
+                        conduit._base.install(pattern=pkg.name)
