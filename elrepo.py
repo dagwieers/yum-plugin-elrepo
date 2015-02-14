@@ -34,15 +34,24 @@ def init_hook(conduit):
         elrepo_devices.append('modalias(' + modalias[:-1] + ')')
 
 def exclude_hook(conduit):
-    global elrepo_matches
     elrepo_matches = []
+    elrepo_exclude = conduit.confString('main', 'exclude').split()
 
-    def find_matches(pkg, values, matchfor=None):
-        if pkg.name in [ p.name for p in elrepo_matches ]: return
-        for provide in values:
-            if not provide.startswith('modalias('): continue
+    def find_matches(pkg, provides, matchfor=None):
+        ### Skip installed packages
+        if pkg.repo.id == 'installed': return
+
+        ### Skip packages we already processed
+        if ( pkg.name, pkg.repo.id) in [ ( p.name, p.repo.id) for p in elrepo_matches ]: return
+
+        ### Skip packages that are excluded
+        for excl in elrepo_exclude:
+            if fnmatch.fnmatch(pkg.name, excl): return
+
+        ### Check if the package matches current hardware
+        for prov in provides:
             for modalias in elrepo_devices:
-                filter = provide.split()[0]
+                filter = prov.split()[0]
                 if fnmatch.fnmatch(modalias, filter):
                     elrepo_matches.append(pkg)
 
