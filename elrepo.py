@@ -44,8 +44,10 @@ def exclude_hook(conduit):
         ### Skip installed packages
         if pkg.repo.id == 'installed': return
 
+        ### TODO: Only select the latest package from the deck
         ### Skip packages we already processed
-        if ( pkg.name, pkg.repo.id) in [ ( p.name, p.repo.id) for p in elrepo_matches ]: return
+        if conduit._base.conf.debuglevel <= 2:
+            if ( pkg.name, pkg.repo.id) in [ ( p.name, p.repo.id) for p in elrepo_matches ]: return
 
         ### Skip packages that are excluded
         for excl in elrepo_exclude:
@@ -67,7 +69,10 @@ def exclude_hook(conduit):
     if elrepo_matches:
         conduit.info(1, 'ELRepo hardware support detected using:')
         for pkg in elrepo_matches:
-            conduit.info(1, ' * %s (%s)' % (pkg.name, pkg.repo.id))
+            if conduit._base.conf.debuglevel > 2:
+                conduit.info(1, ' * %s (%s)' % (pkg, pkg.repo.id))
+            else:
+                conduit.info(1, ' * %s (%s)' % (pkg.name, pkg.repo.id))
 
             ### Install packages if requested
             if elrepo_install:
